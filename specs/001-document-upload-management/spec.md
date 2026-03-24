@@ -10,6 +10,9 @@
 ### Session 2026-03-24
 
 - Q: Which malware-validation level should this feature require? → A: Do not require malware validation in the first release.
+- Q: Which team-lead permission model should this feature require? → A: Team leads can view and manage documents uploaded by users on their team, but only within their team scope.
+- Q: Which project-associated upload model should this feature require? → A: Any current project member can upload documents to that project, while stronger management actions stay role-limited.
+- Q: Which definition of “team” should this feature use for sharing and team-lead management? → A: “Team” means the user’s existing department/team scope in the current app.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -56,9 +59,9 @@ valuable capability is controlled collaboration across projects and shared work.
 
 **Independent Test**: Can be fully tested by associating documents with a
 project, verifying project members can view and download them, verifying role
-rules for upload and deletion, sharing a document with specific users or teams,
-and confirming recipients see the document in "Shared with Me" with a
-notification.
+rules for upload and deletion, sharing a document with specific users or the
+current app's existing department/team scope, and confirming recipients see the
+document in "Shared with Me" with a notification.
 
 **Acceptance Scenarios**:
 
@@ -68,9 +71,10 @@ notification.
 2. **Given** a user is not entitled to a project document, **When** they try to
    access it directly or through search, **Then** the system denies access and
    does not expose document details.
-3. **Given** a document owner shares a document with specific users or teams,
-   **When** the share is completed, **Then** recipients receive a notification
-   and can find the document in "Shared with Me."
+3. **Given** a document owner shares a document with specific users or the
+  current app's existing department/team scope, **When** the share is
+  completed, **Then** recipients receive a notification and can find the
+  document in "Shared with Me."
 4. **Given** a project manager manages project documents, **When** they remove a
    document from their project after confirmation, **Then** the system
    permanently removes it from project access.
@@ -137,8 +141,8 @@ access patterns.
   only include documents the user is permitted to access.
 - A user attempts to preview a file type that is not supported for inline
   preview; the system must still provide download if access is allowed.
-- A document is shared with a team and later deleted by an authorized user;
-  recipients must no longer see or access it.
+- A document is shared with a department/team scope and later deleted by an
+  authorized user; recipients must no longer see or access it.
 - A user tries to replace a document file with one that exceeds the size limit
   or has an unsupported type; the original document must remain unchanged.
 - The local training environment is available but temporarily cannot complete a
@@ -188,12 +192,18 @@ access patterns.
   deleting a document.
 - **FR-018**: The system MUST allow document owners to delete their own
   documents.
-- **FR-019**: The system MUST allow project managers to upload to and delete
-  documents from projects they manage.
+- **FR-019**: The system MUST allow any current project member to upload
+  documents associated with that project.
+- **FR-019a**: The system MUST allow team leads to view, edit metadata for,
+  share, and delete documents uploaded by users in their current
+  department/team scope, but only within that scope and without granting
+  broader project-manager rights.
+- **FR-019b**: The system MUST allow project managers to edit, share, and
+  delete documents within projects they manage.
 - **FR-020**: The system MUST show project-associated documents within the
   relevant project view to authorized project participants.
 - **FR-021**: The system MUST allow document owners to share documents with
-  specific users or teams.
+  specific users or with the current app's existing department/team scope.
 - **FR-022**: The system MUST present documents shared with a user in a distinct
   "Shared with Me" view.
 - **FR-023**: The system MUST allow task views to display related documents and
@@ -235,7 +245,11 @@ access patterns.
 - **Security Scope**: Access rules apply to personal documents, project
   documents, shared documents, task-related documents, previews, downloads,
   updates, deletion, and reporting. Authorization must reflect the user's
-  current role and current relationship to the relevant project, team, or share.
+  current role and current relationship to the relevant project,
+  department/team scope, or share, including project members uploading to their
+  current projects, team leads managing documents uploaded by users in their
+  own department/team scope only, and stronger project-document management
+  actions remaining role-limited.
 - **Infrastructure Scope**: The document storage capability must support future
   replacement with a cloud-backed provider without changing document workflows,
   metadata behavior, permissions, or reporting expectations.
@@ -244,6 +258,9 @@ access patterns.
 - **Assumption 2**: Document categories remain limited to Project Documents,
   Team Resources, Personal Files, Reports, Presentations, and Other for the
   initial release.
+- **Assumption 2a**: Team-based sharing and team-lead management use the
+  application's existing department/team scope rather than a new standalone
+  group type.
 - **Assumption 3**: Dedicated malware scanning is not required in the initial
   release; upload safety is enforced through first-release validation and access
   controls.
@@ -259,15 +276,15 @@ access patterns.
 - **Document**: A stored work file and its metadata, including title,
   description, category, tags, file characteristics, uploader, upload time, and
   optional associations to a project or task context.
-- **Document Share**: A grant that allows a specific user or team to access a
-  document outside direct ownership, including when the share was created and by
-  whom.
+- **Document Share**: A grant that allows a specific user or the application's
+  existing department/team scope to access a document outside direct ownership,
+  including when the share was created and by whom.
 - **Document Activity Record**: An auditable record of a document-related event,
   such as upload, download, deletion, or sharing, used for oversight and
   reporting.
 - **Document Access Context**: The business scope that determines whether a user
-  may access a document, such as ownership, project participation, team-based
-  sharing, or administrative authority.
+  may access a document, such as ownership, project participation,
+  department/team-scope sharing, or administrative authority.
 
 ## Success Criteria *(mandatory)*
 
