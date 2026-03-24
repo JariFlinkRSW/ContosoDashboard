@@ -5,6 +5,12 @@
 **Status**: Draft  
 **Input**: User description: "--file StakeholderDocs/document-upload-and-management-feature.md"
 
+## Clarifications
+
+### Session 2026-03-24
+
+- Q: Which malware-validation level should this feature require? → A: Do not require malware validation in the first release.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Upload and find my documents (Priority: P1)
@@ -155,8 +161,10 @@ access patterns.
   uploader identity, file size, and file type for every uploaded document.
 - **FR-006**: The system MUST show upload progress and an explicit success or
   failure result for each upload attempt.
-- **FR-007**: The system MUST validate files for malware or equivalent safety
-  risk before making them available for access.
+- **FR-007**: The system MUST validate uploaded files using first-release safety
+  checks limited to allowed file types, size limits, metadata requirements, and
+  authorized storage and retrieval rules before making them available for
+  access.
 - **FR-008**: The system MUST store uploaded documents in a non-public location
   and serve them only through authorized application flows.
 - **FR-009**: The system MUST allow users to view a personal document list that
@@ -236,10 +244,13 @@ access patterns.
 - **Assumption 2**: Document categories remain limited to Project Documents,
   Team Resources, Personal Files, Reports, Presentations, and Other for the
   initial release.
-- **Assumption 3**: Deleted documents are permanently removed after
+- **Assumption 3**: Dedicated malware scanning is not required in the initial
+  release; upload safety is enforced through first-release validation and access
+  controls.
+- **Assumption 4**: Deleted documents are permanently removed after
   confirmation; recovery and recycle-bin behavior are out of scope for this
   release.
-- **Assumption 4**: Search, browse, and dashboard summaries only surface
+- **Assumption 5**: Search, browse, and dashboard summaries only surface
   documents available under the user's current access rights at the time of the
   request.
 
