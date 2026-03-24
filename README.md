@@ -53,13 +53,21 @@ This application includes a **mock authentication system** designed for training
 
 ## Overview
 
-ContosoDashboard is built using ASP.NET Core 8.0 with Blazor Server and provides a centralized platform for:
+ContosoDashboard is built using ASP.NET Core 10.0 with Blazor Server and provides a centralized platform for:
 
 - Task management and tracking
 - Project oversight and collaboration
 - Team coordination
 - Notifications and announcements
 - User profile management
+
+## Project Constitution
+
+Specification, planning, and task generation for this training repository are
+governed by `.specify/memory/constitution.md`. Changes to features or workflow
+guidance are expected to preserve the project's training-first scope,
+security-by-default posture, offline-first infrastructure abstractions, and
+layered Blazor architecture.
 
 ## Features
 
@@ -81,7 +89,7 @@ ContosoDashboard is built using ASP.NET Core 8.0 with Blazor Server and provides
 
 ### 🔧 Technical Stack
 
-- **Framework**: ASP.NET Core 8.0
+- **Framework**: ASP.NET Core 10.0
 - **UI**: Blazor Server
 - **Database**: SQL Server LocalDB with Entity Framework Core
 - **Authentication**: Cookie-based mock authentication for training (Azure AD/Microsoft Entra ID ready)
@@ -137,7 +145,7 @@ public interface IFileStorageService
 
 ### Prerequisites
 
-- .NET 8.0 SDK or later
+- .NET 10.0 SDK or later
 - SQL Server LocalDB
 - Visual Studio 2022 or Visual Studio Code
 

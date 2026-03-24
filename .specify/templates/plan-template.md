@@ -31,7 +31,18 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+- Training-first scope preserved: feature keeps a runnable local/offline training
+  path and does not present mock components as production-ready.
+- Security boundaries defined: affected roles, authorization points,
+  IDOR-sensitive access paths, and audit/logging expectations are identified.
+- Infrastructure abstraction preserved: any new storage, identity, messaging, or
+  external integration is introduced behind an interface with a local default
+  implementation.
+- Story slices remain independently valuable and verifiable, with measurable
+  acceptance criteria and a validation approach.
+- Architectural fit is explicit: impacted Blazor pages/components, services,
+  data models, and documentation are named, and any deviation is tracked in
+  Complexity Tracking.
 
 ## Project Structure
 

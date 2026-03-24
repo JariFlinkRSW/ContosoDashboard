@@ -74,6 +74,10 @@
 
 - What happens when [boundary condition]?
 - How does system handle [error scenario]?
+- How does the feature behave for unauthorized users or users outside the
+  relevant role/project scope?
+- How does the feature behave when the offline/local dependency it relies on is
+  unavailable or fails mid-operation?
 
 ## Requirements *(mandatory)*
 
@@ -89,11 +93,24 @@
 - **FR-003**: Users MUST be able to [key interaction, e.g., "reset their password"]
 - **FR-004**: System MUST [data requirement, e.g., "persist user preferences"]
 - **FR-005**: System MUST [behavior, e.g., "log all security events"]
+- **FR-006**: System MUST define any role-based authorization, data access, and
+  audit expectations introduced by the feature.
+- **FR-007**: System MUST describe any offline/local-only execution constraints
+  and any required infrastructure abstraction for future migration.
 
 *Example of marking unclear requirements:*
 
-- **FR-006**: System MUST authenticate users via [NEEDS CLARIFICATION: auth method not specified - email/password, SSO, OAuth?]
-- **FR-007**: System MUST retain user data for [NEEDS CLARIFICATION: retention period not specified]
+- **FR-008**: System MUST authenticate users via [NEEDS CLARIFICATION: auth method not specified - email/password, SSO, OAuth?]
+- **FR-009**: System MUST retain user data for [NEEDS CLARIFICATION: retention period not specified]
+
+## Constraints & Assumptions
+
+- **Training Scope**: [State whether the feature must remain fully runnable in
+  the repository's local/offline training mode.]
+- **Security Scope**: [State the affected roles, protected resources, and any
+  required service-level authorization checks.]
+- **Infrastructure Scope**: [State which interfaces or abstraction seams are
+  required for storage, identity, messaging, or other infrastructure.]
 
 ### Key Entities *(include if feature involves data)*
 
