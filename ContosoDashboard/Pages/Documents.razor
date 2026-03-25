@@ -1,0 +1,686 @@
+@page "/documents"
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Policy = "Employee")]
+@inject IDocumentService DocumentService
+@inject IProjectService ProjectService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject Microsoft.Extensions.Options.IOptions<DocumentStorageOptions> StorageOptions
+
+<PageTitle>Documents - ContosoDashboard</PageTitle>
+
+<div class="container-fluid documents-page">
+    <div class="row mb-4 align-items-center">
+        <div class="col">
+            <h1>Documents</h1>
+            <p class="text-muted mb-0">Upload, find, preview, replace, and manage your personal documents.</p>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(statusMessage))
+    {
+        <div class="alert @statusCssClass" role="alert">@statusMessage</div>
+    }
+
+    @if (isLoading)
+    {
+        <p><em>Loading documents...</em></p>
+    }
+    else
+    {
+        <div class="row g-4">
+            <div class="col-lg-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0">Upload Documents</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Title</label>
+                            <input class="form-control" @bind="uploadModel.Title" maxlength="255" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Category</label>
+                            <select class="form-select" @bind="uploadModel.Category">
+                                <option value="">Select a category</option>
+                                @foreach (var category in defaultCategories)
+                                {
+                                    <option value="@category">@category</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea class="form-control" rows="3" maxlength="2000" @bind="uploadModel.Description"></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Associated Project</label>
+                            <select class="form-select" @bind="uploadModel.ProjectId">
+                                <option value="0">No project</option>
+                                @foreach (var project in availableProjects)
+                                {
+                                    <option value="@project.ProjectId">@project.Name</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Tags</label>
+                            <input class="form-control" @bind="uploadModel.TagsText" maxlength="500" placeholder="Separate tags with commas" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Files</label>
+                            <InputFile OnChange="HandleFileSelection" multiple class="form-control" />
+                            <div class="form-text">Supported: PDF, Office documents, text files, JPEG, PNG. Maximum @StorageOptions.Value.MaxFileSizeMb MB per file.</div>
+                        </div>
+
+                        @if (selectedFiles.Any())
+                        {
+                            <div class="selected-files mb-3">
+                                @foreach (var file in selectedFiles)
+                                {
+                                    <div class="selected-file-row">
+                                        <span>@file.Name</span>
+                                        <small class="text-muted">@FormatFileSize(file.Size)</small>
+                                    </div>
+                                }
+                            </div>
+                        }
+
+                        @if (isUploading)
+                        {
+                            <div class="mb-3">
+                                <div class="progress">
+                                    <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: @uploadProgressPercent%">@uploadProgressPercent%</div>
+                                </div>
+                                <small class="text-muted">Processing @processedUploadCount of @selectedFiles.Count files</small>
+                            </div>
+                        }
+
+                        <button class="btn btn-primary w-100" @onclick="UploadDocumentsAsync" disabled="@(!selectedFiles.Any() || isUploading)">
+                            <i class="bi bi-upload"></i> Upload Files
+                        </button>
+
+                        @if (uploadResults.Any())
+                        {
+                            <div class="mt-3">
+                                @foreach (var result in uploadResults)
+                                {
+                                    <div class="alert @(result.Success ? "alert-success" : "alert-danger") py-2 mb-2" role="alert">
+                                        <strong>@result.FileName</strong><br />
+                                        <span>@result.Message</span>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-8">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Find My Documents</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-4">
+                                <label class="form-label">Search</label>
+                                <input class="form-control" @bind="filters.SearchTerm" placeholder="Title, description, tag, project" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Category</label>
+                                <select class="form-select" @bind="filters.Category">
+                                    <option value="">All categories</option>
+                                    @foreach (var category in availableCategories)
+                                    {
+                                        <option value="@category">@category</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Project</label>
+                                <select class="form-select" @bind="filters.ProjectId">
+                                    <option value="">All</option>
+                                    @foreach (var project in availableProjects)
+                                    {
+                                        <option value="@project.ProjectId">@project.Name</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Sort By</label>
+                                <select class="form-select" @bind="filters.SortBy">
+                                    <option value="@DocumentSortField.UploadDate">Upload Date</option>
+                                    <option value="@DocumentSortField.Title">Title</option>
+                                    <option value="@DocumentSortField.Category">Category</option>
+                                    <option value="@DocumentSortField.FileSize">File Size</option>
+                                </select>
+                            </div>
+                            <div class="col-md-1 d-flex align-items-end">
+                                <button class="btn btn-outline-secondary w-100" @onclick="ToggleSortDirection" title="Toggle sort direction">
+                                    <i class="bi @(filters.Descending ? "bi-sort-down" : "bi-sort-up")"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2 mb-3">
+                            <button class="btn btn-primary" @onclick="LoadDocumentsAsync">Apply Filters</button>
+                            <button class="btn btn-outline-secondary" @onclick="ResetFilters">Reset</button>
+                        </div>
+
+                        @if (!documents.Any())
+                        {
+                            <div class="alert alert-info mb-0">No documents match the current filters.</div>
+                        }
+                        else
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>Title</th>
+                                            <th>Category</th>
+                                            <th>Uploaded</th>
+                                            <th>Size</th>
+                                            <th>Project</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var document in documents)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <strong>@document.Title</strong>
+                                                    @if (!string.IsNullOrWhiteSpace(document.Description))
+                                                    {
+                                                        <br />
+                                                        <small class="text-muted">@document.Description</small>
+                                                    }
+                                                    @if (document.Tags.Any())
+                                                    {
+                                                        <div class="mt-1">
+                                                            @foreach (var tag in document.Tags)
+                                                            {
+                                                                <span class="badge bg-light text-dark border me-1">@tag</span>
+                                                            }
+                                                        </div>
+                                                    }
+                                                </td>
+                                                <td>@document.Category</td>
+                                                <td>
+                                                    @document.CreatedDateUtc.ToLocalTime().ToString("MMM dd, yyyy")
+                                                    <br />
+                                                    <small class="text-muted">@document.UploadedByDisplayName</small>
+                                                </td>
+                                                <td>@document.FileSizeDisplay</td>
+                                                <td>@(document.ProjectName ?? "-")</td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm" role="group">
+                                                        @if (document.IsPreviewable)
+                                                        {
+                                                            <a class="btn btn-outline-secondary" href="/document-files/@document.DocumentId/preview" target="_blank" rel="noopener noreferrer">Preview</a>
+                                                        }
+                                                        <a class="btn btn-outline-primary" href="/document-files/@document.DocumentId/download">Download</a>
+                                                        <button class="btn btn-outline-dark" @onclick="() => BeginEdit(document)">Edit</button>
+                                                        <button class="btn btn-outline-warning" @onclick="() => BeginReplace(document)">Replace</button>
+                                                        <button class="btn btn-outline-danger" @onclick="() => BeginDelete(document)">Delete</button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                @if (editModel != null)
+                {
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Edit Document Details</h5>
+                            <button class="btn btn-sm btn-link" @onclick="ClosePanels">Close</button>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Title</label>
+                                    <input class="form-control" @bind="editModel.Title" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Category</label>
+                                    <select class="form-select" @bind="editModel.Category">
+                                        @foreach (var category in defaultCategories)
+                                        {
+                                            <option value="@category">@category</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Description</label>
+                                    <textarea class="form-control" rows="3" @bind="editModel.Description"></textarea>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Tags</label>
+                                    <input class="form-control" @bind="editModel.TagsText" />
+                                </div>
+                            </div>
+
+                            <div class="d-flex gap-2 mt-3">
+                                <button class="btn btn-primary" @onclick="SaveMetadataAsync">Save Changes</button>
+                                <button class="btn btn-outline-secondary" @onclick="ClosePanels">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                @if (replaceModel != null)
+                {
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Replace Document File</h5>
+                            <button class="btn btn-sm btn-link" @onclick="ClosePanels">Close</button>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-2"><strong>@replaceModel.Title</strong></p>
+                            <p class="text-muted">The existing document record will be kept, but the binary file will be replaced if validation succeeds.</p>
+                            <InputFile OnChange="HandleReplacementSelection" class="form-control" />
+                            @if (replacementFile != null)
+                            {
+                                <div class="mt-2 text-muted">Selected replacement: @replacementFile.Name (@FormatFileSize(replacementFile.Size))</div>
+                            }
+
+                            <div class="d-flex gap-2 mt-3">
+                                <button class="btn btn-warning" @onclick="ReplaceFileAsync" disabled="@(replacementFile == null)">Replace File</button>
+                                <button class="btn btn-outline-secondary" @onclick="ClosePanels">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                @if (deleteModel != null)
+                {
+                    <div class="card shadow-sm border-danger">
+                        <div class="card-header bg-danger-subtle d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Delete Document</h5>
+                            <button class="btn btn-sm btn-link" @onclick="ClosePanels">Close</button>
+                        </div>
+                        <div class="card-body">
+                            <p>Delete <strong>@deleteModel.Title</strong>? This permanently removes the file and metadata from the active document list.</p>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-danger" @onclick="DeleteDocumentAsync">Confirm Delete</button>
+                                <button class="btn btn-outline-secondary" @onclick="ClosePanels">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private static readonly string[] defaultCategories =
+    {
+        "Project Documents",
+        "Team Resources",
+        "Personal Files",
+        "Reports",
+        "Presentations",
+        "Other"
+    };
+
+    private readonly UploadFormModel uploadModel = new();
+    private readonly DocumentQueryOptions filters = new();
+    private List<Project> availableProjects = new();
+    private List<DocumentListItem> documents = new();
+    private List<string> availableCategories = new();
+    private List<IBrowserFile> selectedFiles = new();
+    private List<DocumentUploadResult> uploadResults = new();
+    private EditFormModel? editModel;
+    private ReplaceFormModel? replaceModel;
+    private DeleteFormModel? deleteModel;
+    private IBrowserFile? replacementFile;
+    private int currentUserId;
+    private bool isLoading = true;
+    private bool isUploading;
+    private int uploadProgressPercent;
+    private int processedUploadCount;
+    private string? statusMessage;
+    private string statusCssClass = "alert-success";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userIdClaim = authState.User.FindFirst(ClaimTypes.NameIdentifier);
+        if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out currentUserId))
+        {
+            statusMessage = "Unable to resolve the current user.";
+            statusCssClass = "alert-danger";
+            isLoading = false;
+            return;
+        }
+
+        availableProjects = await ProjectService.GetUserProjectsAsync(currentUserId);
+        await LoadDocumentsAsync();
+        isLoading = false;
+    }
+
+    private async Task LoadDocumentsAsync()
+    {
+        var result = await DocumentService.GetMyDocumentsAsync(currentUserId, filters);
+        documents = result.Documents.ToList();
+        availableCategories = defaultCategories.Union(result.AvailableCategories).Distinct().OrderBy(category => category).ToList();
+    }
+
+    private void HandleFileSelection(InputFileChangeEventArgs eventArgs)
+    {
+        selectedFiles = eventArgs.GetMultipleFiles(10).ToList();
+        uploadResults.Clear();
+        uploadProgressPercent = 0;
+        processedUploadCount = 0;
+        ClearStatus();
+    }
+
+    private async Task UploadDocumentsAsync()
+    {
+        ClearStatus();
+
+        if (!selectedFiles.Any())
+        {
+            SetStatus("Select at least one file to upload.", false);
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(uploadModel.Title) || string.IsNullOrWhiteSpace(uploadModel.Category))
+        {
+            SetStatus("Title and category are required before uploading.", false);
+            return;
+        }
+
+        isUploading = true;
+        uploadResults = new List<DocumentUploadResult>();
+        processedUploadCount = 0;
+        uploadProgressPercent = 0;
+
+        foreach (var file in selectedFiles)
+        {
+            var command = new DocumentUploadCommand
+            {
+                Title = uploadModel.Title,
+                Description = uploadModel.Description,
+                Category = uploadModel.Category,
+                ProjectId = uploadModel.ProjectId == 0 ? null : uploadModel.ProjectId,
+                TagValues = ParseTags(uploadModel.TagsText),
+                Files = new[]
+                {
+                    new DocumentUploadFile
+                    {
+                        FileName = file.Name,
+                        ContentType = file.ContentType,
+                        Size = file.Size,
+                        OpenReadStreamAsync = cancellationToken => Task.FromResult<Stream>(file.OpenReadStream(StorageOptions.Value.MaxFileSizeBytes, cancellationToken))
+                    }
+                }
+            };
+
+            var result = (await DocumentService.UploadDocumentsAsync(currentUserId, command)).Single();
+            uploadResults.Add(result);
+            processedUploadCount++;
+            uploadProgressPercent = (int)Math.Round(processedUploadCount * 100d / selectedFiles.Count, MidpointRounding.AwayFromZero);
+            await InvokeAsync(StateHasChanged);
+        }
+
+        isUploading = false;
+
+        if (uploadResults.All(result => result.Success))
+        {
+            SetStatus("All selected documents were uploaded successfully.", true);
+            uploadModel.Reset();
+            selectedFiles.Clear();
+        }
+        else if (uploadResults.Any(result => result.Success))
+        {
+            SetStatus("Some files uploaded successfully, but one or more files failed validation or save.", false);
+        }
+        else
+        {
+            SetStatus("No files were uploaded.", false);
+        }
+
+        await LoadDocumentsAsync();
+    }
+
+    private void BeginEdit(DocumentListItem document)
+    {
+        editModel = new EditFormModel
+        {
+            DocumentId = document.DocumentId,
+            Title = document.Title,
+            Description = document.Description,
+            Category = document.Category,
+            TagsText = string.Join(", ", document.Tags)
+        };
+
+        replaceModel = null;
+        deleteModel = null;
+        replacementFile = null;
+        ClearStatus();
+    }
+
+    private async Task SaveMetadataAsync()
+    {
+        if (editModel == null)
+        {
+            return;
+        }
+
+        var result = await DocumentService.UpdateDocumentMetadataAsync(currentUserId, new UpdateDocumentMetadataCommand
+        {
+            DocumentId = editModel.DocumentId,
+            Title = editModel.Title,
+            Description = editModel.Description,
+            Category = editModel.Category,
+            TagValues = ParseTags(editModel.TagsText)
+        });
+
+        SetStatus(result.Message, result.Success);
+        if (result.Success)
+        {
+            editModel = null;
+            await LoadDocumentsAsync();
+        }
+    }
+
+    private void BeginReplace(DocumentListItem document)
+    {
+        replaceModel = new ReplaceFormModel
+        {
+            DocumentId = document.DocumentId,
+            Title = document.Title
+        };
+
+        editModel = null;
+        deleteModel = null;
+        replacementFile = null;
+        ClearStatus();
+    }
+
+    private void HandleReplacementSelection(InputFileChangeEventArgs eventArgs)
+    {
+        replacementFile = eventArgs.File;
+        ClearStatus();
+    }
+
+    private async Task ReplaceFileAsync()
+    {
+        if (replaceModel == null || replacementFile == null)
+        {
+            return;
+        }
+
+        var result = await DocumentService.ReplaceDocumentFileAsync(currentUserId, new ReplaceDocumentFileCommand
+        {
+            DocumentId = replaceModel.DocumentId,
+            ReplacementFile = new DocumentUploadFile
+            {
+                FileName = replacementFile.Name,
+                ContentType = replacementFile.ContentType,
+                Size = replacementFile.Size,
+                OpenReadStreamAsync = cancellationToken => Task.FromResult<Stream>(replacementFile.OpenReadStream(StorageOptions.Value.MaxFileSizeBytes, cancellationToken))
+            }
+        });
+
+        SetStatus(result.Message, result.Success);
+        if (result.Success)
+        {
+            replaceModel = null;
+            replacementFile = null;
+            await LoadDocumentsAsync();
+        }
+    }
+
+    private void BeginDelete(DocumentListItem document)
+    {
+        deleteModel = new DeleteFormModel
+        {
+            DocumentId = document.DocumentId,
+            Title = document.Title
+        };
+
+        editModel = null;
+        replaceModel = null;
+        replacementFile = null;
+        ClearStatus();
+    }
+
+    private async Task DeleteDocumentAsync()
+    {
+        if (deleteModel == null)
+        {
+            return;
+        }
+
+        var result = await DocumentService.DeleteDocumentAsync(currentUserId, new DeleteDocumentCommand
+        {
+            DocumentId = deleteModel.DocumentId,
+            Confirmation = true
+        });
+
+        SetStatus(result.Message, result.Success);
+        if (result.Success)
+        {
+            deleteModel = null;
+            await LoadDocumentsAsync();
+        }
+    }
+
+    private async Task ResetFilters()
+    {
+        filters.SearchTerm = null;
+        filters.Category = null;
+        filters.ProjectId = null;
+        filters.SortBy = DocumentSortField.UploadDate;
+        filters.Descending = true;
+        await LoadDocumentsAsync();
+    }
+
+    private void ToggleSortDirection()
+    {
+        filters.Descending = !filters.Descending;
+    }
+
+    private void ClosePanels()
+    {
+        editModel = null;
+        replaceModel = null;
+        deleteModel = null;
+        replacementFile = null;
+    }
+
+    private static List<string> ParseTags(string? tagsText)
+    {
+        if (string.IsNullOrWhiteSpace(tagsText))
+        {
+            return new List<string>();
+        }
+
+        return tagsText
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private static string FormatFileSize(long bytes)
+    {
+        if (bytes < 1024)
+        {
+            return $"{bytes} B";
+        }
+
+        if (bytes < 1024 * 1024)
+        {
+            return $"{bytes / 1024d:F1} KB";
+        }
+
+        return $"{bytes / 1024d / 1024d:F1} MB";
+    }
+
+    private void SetStatus(string message, bool success)
+    {
+        statusMessage = message;
+        statusCssClass = success ? "alert-success" : "alert-danger";
+    }
+
+    private void ClearStatus()
+    {
+        statusMessage = null;
+        statusCssClass = "alert-success";
+    }
+
+    private sealed class UploadFormModel
+    {
+        public string Title { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string Category { get; set; } = string.Empty;
+        public int ProjectId { get; set; }
+        public string? TagsText { get; set; }
+
+        public void Reset()
+        {
+            Title = string.Empty;
+            Description = null;
+            Category = string.Empty;
+            ProjectId = 0;
+            TagsText = null;
+        }
+    }
+
+    private sealed class EditFormModel
+    {
+        public int DocumentId { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string Category { get; set; } = string.Empty;
+        public string? TagsText { get; set; }
+    }
+
+    private sealed class ReplaceFormModel
+    {
+        public int DocumentId { get; set; }
+        public string Title { get; set; } = string.Empty;
+    }
+
+    private sealed class DeleteFormModel
+    {
+        public int DocumentId { get; set; }
+        public string Title { get; set; } = string.Empty;
+    }
+}

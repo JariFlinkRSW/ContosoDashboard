@@ -164,3 +164,29 @@ main {
 .content {
     padding-top: 1.1rem;
 }
+
+.documents-page .card {
+    border: 0;
+}
+
+.documents-page .card-header {
+    background: linear-gradient(180deg, #f8fbff 0%, #eef5fb 100%);
+    border-bottom: 1px solid #dbe7f1;
+}
+
+.selected-files {
+    border: 1px solid #dbe7f1;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    background-color: #f8fbff;
+}
+
+.selected-file-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.selected-file-row + .selected-file-row {
+    margin-top: 0.35rem;
+}

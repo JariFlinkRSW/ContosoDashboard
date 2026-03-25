@@ -1,14 +1,20 @@
 using Microsoft.EntityFrameworkCore;
 using ContosoDashboard.Data;
 using ContosoDashboard.Services;
+using Microsoft.Data.SqlClient;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.Extensions.Options;
+using System.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
+builder.Services.AddControllers();
+
+builder.Services.Configure<DocumentStorageOptions>(builder.Configuration.GetSection(DocumentStorageOptions.SectionName));
 
 // Add authentication state provider for Blazor
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();
@@ -43,6 +49,8 @@ builder.Services.AddScoped<ITaskService, TaskService>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
+builder.Services.AddScoped<IDocumentService, DocumentService>();
 
 // Add HttpContextAccessor for accessing user claims
 builder.Services.AddHttpContextAccessor();
@@ -56,7 +64,33 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var context = services.GetRequiredService<ApplicationDbContext>();
-        context.Database.EnsureCreated(); // For development - use migrations in production
+        var logger = services.GetRequiredService<ILogger<Program>>();
+
+        if (NeedsLegacyDatabaseReset(context))
+        {
+            logger.LogWarning("A legacy training database without migration history was detected. Recreating the database so migrations can be applied cleanly.");
+            context.Database.CloseConnection();
+            SqlConnection.ClearAllPools();
+            context.Database.EnsureDeleted();
+        }
+
+        try
+        {
+            context.Database.Migrate();
+        }
+        catch (SqlException ex) when (ex.Message.Contains("already an object named", StringComparison.OrdinalIgnoreCase))
+        {
+            logger.LogWarning(ex, "A legacy pre-migrations training database blocked schema creation. Recreating it and retrying migrations.");
+            context.Database.CloseConnection();
+            SqlConnection.ClearAllPools();
+            context.Database.EnsureDeleted();
+            context.Database.Migrate();
+        }
+
+        var storageOptions = services.GetRequiredService<IOptions<DocumentStorageOptions>>().Value;
+        var contentRoot = services.GetRequiredService<IHostEnvironment>().ContentRootPath;
+        var storageRoot = Path.GetFullPath(Path.Combine(contentRoot, storageOptions.RootPath));
+        Directory.CreateDirectory(storageRoot);
     }
     catch (Exception ex)
     {
@@ -105,7 +139,43 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapControllers();
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
 
 app.Run();
+
+static bool NeedsLegacyDatabaseReset(ApplicationDbContext context)
+{
+    if (!context.Database.CanConnect())
+    {
+        return false;
+    }
+
+    var connection = context.Database.GetDbConnection();
+    var shouldClose = connection.State != ConnectionState.Open;
+
+    try
+    {
+        if (shouldClose)
+        {
+            connection.Open();
+        }
+
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE'";
+        var tableCount = Convert.ToInt32(command.ExecuteScalar() ?? 0);
+
+        command.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '__EFMigrationsHistory'";
+        var historyTableCount = Convert.ToInt32(command.ExecuteScalar() ?? 0);
+
+        return tableCount > 0 && historyTableCount == 0;
+    }
+    finally
+    {
+        if (shouldClose)
+        {
+            connection.Close();
+        }
+    }
+}

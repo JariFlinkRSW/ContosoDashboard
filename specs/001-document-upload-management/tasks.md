@@ -11,9 +11,9 @@
 
 **Purpose**: Add the configuration and infrastructure seams required for private document storage in the existing Blazor Server app.
 
-- [ ] T001 Configure the private document storage root and upload limits in ContosoDashboard/appsettings.json and ContosoDashboard/appsettings.Development.json
-- [ ] T002 Create the storage abstraction and local implementation in ContosoDashboard/Services/IFileStorageService.cs and ContosoDashboard/Services/LocalFileStorageService.cs
-- [ ] T003 Register document storage services, controller support, and document feature configuration in ContosoDashboard/Program.cs
+- [X] T001 Configure the private document storage root and upload limits in ContosoDashboard/appsettings.json and ContosoDashboard/appsettings.Development.json
+- [X] T002 Create the storage abstraction and local implementation in ContosoDashboard/Services/IFileStorageService.cs and ContosoDashboard/Services/LocalFileStorageService.cs
+- [X] T003 Register document storage services, controller support, and document feature configuration in ContosoDashboard/Program.cs
 
 ---
 
@@ -23,11 +23,11 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T004 [P] Create the core document entities in ContosoDashboard/Models/Document.cs, ContosoDashboard/Models/DocumentShare.cs, ContosoDashboard/Models/DocumentActivityRecord.cs, and ContosoDashboard/Models/DocumentTag.cs
-- [ ] T005 [P] Extend shared domain models for document relationships and notification types in ContosoDashboard/Models/User.cs, ContosoDashboard/Models/Project.cs, ContosoDashboard/Models/TaskItem.cs, and ContosoDashboard/Models/Notification.cs
-- [ ] T006 Update EF Core mappings, DbSets, indexes, and relationship rules for documents in ContosoDashboard/Data/ApplicationDbContext.cs
-- [ ] T007 Create the document-management schema migration in ContosoDashboard/Migrations/
-- [ ] T008 Define the document service contract, DTOs, and command models in ContosoDashboard/Services/IDocumentService.cs
+- [X] T004 [P] Create the core document entities in ContosoDashboard/Models/Document.cs, ContosoDashboard/Models/DocumentShare.cs, ContosoDashboard/Models/DocumentActivityRecord.cs, and ContosoDashboard/Models/DocumentTag.cs
+- [X] T005 [P] Extend shared domain models for document relationships and notification types in ContosoDashboard/Models/User.cs, ContosoDashboard/Models/Project.cs, ContosoDashboard/Models/TaskItem.cs, and ContosoDashboard/Models/Notification.cs
+- [X] T006 Update EF Core mappings, DbSets, indexes, and relationship rules for documents in ContosoDashboard/Data/ApplicationDbContext.cs
+- [X] T007 Create the document-management schema migration in ContosoDashboard/Migrations/
+- [X] T008 Define the document service contract, DTOs, and command models in ContosoDashboard/Services/IDocumentService.cs
 
 **Checkpoint**: Foundation ready - user story implementation can now begin.
 
@@ -41,16 +41,18 @@
 
 ### Validation for User Story 1
 
-- [ ] T009 [P] [US1] Verify the personal-document upload, browse, search, preview, replace, and delete flow in specs/001-document-upload-management/quickstart.md
+- [X] T009 [P] [US1] Verify the personal-document upload, browse, search, preview, replace, and delete flow in specs/001-document-upload-management/quickstart.md
 - [ ] T010 [P] [US1] Verify unsupported file, oversize file, mixed-validity batch, and storage-failure handling in specs/001-document-upload-management/quickstart.md
+
+Note: unsupported file rejection, oversize file rejection, and mixed-validity multi-file behavior were manually verified on 2026-03-25. Storage-failure cleanup behavior was explicitly skipped and remains unverified.
 
 ### Implementation for User Story 1
 
-- [ ] T011 [US1] Implement personal document upload, search, metadata update, replacement, deletion, authorization, and audit logic in ContosoDashboard/Services/DocumentService.cs
-- [ ] T012 [P] [US1] Implement protected preview and download endpoints for authorized personal documents in ContosoDashboard/Controllers/DocumentFilesController.cs
-- [ ] T013 [P] [US1] Create the personal document management UI with upload progress, filters, search, and edit actions in ContosoDashboard/Pages/Documents.razor
-- [ ] T014 [P] [US1] Add the document management navigation entry in ContosoDashboard/Shared/NavMenu.razor
-- [ ] T015 [US1] Add document feature logging for upload validation, storage failures, preview, download, and delete operations in ContosoDashboard/Services/DocumentService.cs and ContosoDashboard/Controllers/DocumentFilesController.cs
+- [X] T011 [US1] Implement personal document upload, search, metadata update, replacement, deletion, authorization, and audit logic in ContosoDashboard/Services/DocumentService.cs
+- [X] T012 [P] [US1] Implement protected preview and download endpoints for authorized personal documents in ContosoDashboard/Controllers/DocumentFilesController.cs
+- [X] T013 [P] [US1] Create the personal document management UI with upload progress, filters, search, and edit actions in ContosoDashboard/Pages/Documents.razor
+- [X] T014 [P] [US1] Add the document management navigation entry in ContosoDashboard/Shared/NavMenu.razor
+- [X] T015 [US1] Add document feature logging for upload validation, storage failures, preview, download, and delete operations in ContosoDashboard/Services/DocumentService.cs and ContosoDashboard/Controllers/DocumentFilesController.cs
 
 **Checkpoint**: User Story 1 is fully functional and can be demonstrated as the MVP.
 

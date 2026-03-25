@@ -197,6 +197,14 @@ PublishScripts/
 *.nuget.props
 *.nuget.targets
 
+# VS Code and cross-platform workspace artifacts
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+.env*
+
 # Microsoft Azure Build Output
 csx/
 *.build.csdef
